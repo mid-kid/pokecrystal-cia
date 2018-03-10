@@ -59,14 +59,14 @@ $(vc_game) $(vc_manual): $(vc_rom)
 $(vc_rom): | $(vc_dir)/$(vc_titleid).cia $(vc_dir)/$(vc_titleid).key
 	mkdir -p $@
 	ctrtool --contents=$@/contents $(vc_dir)/$(vc_titleid).cia
-	ctrtool --seed=$(shell cat $(vc_dir)/$(vc_titleid).key) \
+	ctrtool --seeddb=$(vc_dir)/$(vc_titleid).key \
 	        --exheader=$@/exheader.bin \
 	        --exefsdir=$@/exefs \
 	        --romfsdir=$@/romfs \
 	        --logo=$@/logo.lz \
 	        --plainrgn=$@/plain.bin \
 	        $@/contents.0000.*
-	ctrtool --seed=$(shell cat $(vc_dir)/$(vc_titleid).key) \
+	ctrtool --seeddb=$(vc_dir)/$(vc_titleid).key \
 	        --romfsdir=$@/manual \
 	        $@/contents.0001.*
 	rm -f $@/contents.*
@@ -74,7 +74,10 @@ $(vc_rom): | $(vc_dir)/$(vc_titleid).cia $(vc_dir)/$(vc_titleid).key
 	rm -f $@/romfs/CGBBYTE1.784.patch
 
 $(vc_dir)/%.key:
-	curl -k 'https://kagiya-ctr.cdn.nintendo.net/title/0x$*/ext_key?country=JP' | xxd -plain > $@
+	printf '\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' > $@
+	printf '$(shell echo $* | sed -e 's/../\\x&\n/g' | sed -ne 'x;H;$${x;s/\n//g;p;}')' >> $@
+	curl -k 'https://kagiya-ctr.cdn.nintendo.net/title/0x$*/ext_key?country=JP' >> $@
+	printf '\x00\x00\x00\x00\x00\x00\x00\x00' >> $@
 
 $(vc_dir)/%.cia:
 	@echo "Could not find $@."
